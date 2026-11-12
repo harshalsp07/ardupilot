@@ -2946,6 +2946,8 @@ class TestSuite(abc.ABC):
 
     def all_log_format_ids(self):
         '''parse C++ code to extract definitions of log messages'''
+        # Keep quoted fields when trimming C++ line comments.
+        quoted_string_or_comment = re.compile(r'("(?:[^"\\]|\\.)*")|//.*')
         structure_files = self.find_LogStructureFiles()
         structure_lines = []
         for f in structure_files:
@@ -2972,7 +2974,7 @@ class TestSuite(abc.ABC):
                     print("line: %s" % line)
                 if isinstance(line, bytes):
                     line = line.decode("utf-8")
-                line = re.sub("//.*", "", line) # trim comments
+                line = quoted_string_or_comment.sub(r'\1', line)
                 if re.match(r"\s*$", line):
                     # blank line
                     continue
@@ -3055,7 +3057,7 @@ class TestSuite(abc.ABC):
         for line in open(filepath, 'rb').readlines():
             if isinstance(line, bytes):
                 line = line.decode("utf-8")
-            line = re.sub("//.*", "", line) # trim comments
+            line = quoted_string_or_comment.sub(r'\1', line)
             if re.match(r"\s*$", line):
                 # blank line
                 continue
@@ -3161,11 +3163,11 @@ class TestSuite(abc.ABC):
                             if (re.match(r"\s*AP::logger\(\)[.]Write(?:Streaming)?\(", line) or
                                     re.match(r"\s*logger[.]Write(?:Streaming)?\(", line)):
                                 state = state_inside
-                                line = re.sub("//.*", "", line) # trim comments
+                                line = quoted_string_or_comment.sub(r'\1', line)
                                 log_write_statement = line
                             continue
                         if state == state_inside:
-                            line = re.sub("//.*", "", line) # trim comments
+                            line = quoted_string_or_comment.sub(r'\1', line)
                             # cpp-style string concatenation:
                             line = re.sub(r'"\s*"', '', line)
                             log_write_statement += line
